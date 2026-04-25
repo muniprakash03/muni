@@ -1,46 +1,22 @@
-name: Deploy Static Website to S3
+name: Deploy to S3
 
 on:
   push:
-    branches: [ main ]
-  workflow_dispatch:  # Allows manual triggering
-
-# OIDC permissions for keyless authentication
-permissions:
-  id-token: write
-  contents: read
+    branches:
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v3
-    
-   
-      
-    # # Configure AWS credentials
-      name: Configure AWS credentials
-      uses: aws-actions/configure-aws-credentials@v1
-      with:
-         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-         aws-region: "ap-south-1"
-    
-    # OIDC/IRSA Authentication - No more access keys!
-    - name: Configure AWS credentials via OIDC
-      uses: aws-actions/configure-aws-credentials@v4
-      with:
-        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-        role-session-name: GitHubActions-Backend-${{ github.run_id }}
-        aws-region: ${{secrets.AWS_REGION }}
-    
-    # Deploy to S3 bucket - directly sync the repository contents
-    - name: Deploy to S3
-      run: |
-        aws s3 sync ./ s3://${{ secrets.muni-demo-bucket }}/ \
-          --delete \
-          --exclude ".git/*" \
-          --exclude ".github/*" \
-          --exclude "README.md" 
+      - uses: actions/checkout@v3
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-south-1
+
+      - name: Deploy static site to S3
+        run: aws s3 sync ./build/ s3://muni-demo-bucket --delete
