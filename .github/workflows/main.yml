@@ -1,18 +1,31 @@
-name: CI
+name: Deploy to S3 and CloudFront
 
 on:
-  pull_request:
-    branches: [ master ]
+  push:
+    branches:
+      - main   # deploy whenever you push to main
 
 jobs:
-  ci:
+  deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v3
-      - name: Install flake8
-        run: pip install flake8
-      - name: Give executable permissions to run_ci.sh inside the scripts directory
-        run: chmod a+x scripts/run_ci.sh
-      - name: Run the ci script inside the scripts folder
-        run: bash scripts/run_ci.sh
-        shell: bash
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.us-east-1 }}
+
+      - name: Sync files to S3
+        run: |
+          aws s3 sync . s3://github-cloudfront --delete --acl public-read
+
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id E3FPR8KEWTD0TD \
+            --paths "/*"
