@@ -1,44 +1,32 @@
-name: Deploy static site to S3
+AWSTemplateFormatversion: '2010-09-09'
+Description: Static Website Hosting using s3
 
-on:
-  push:
-    branches: [ main ]      # change branch as needed
-  workflow_dispatch:        # allow manual trigger
+Resources:
 
-permissions:
-  contents: read
+  MyWebsiteBucket:
+    Type: AWS: :S3: :Bucket
+    Properties:
+     BucketName: muni-demo-bucket
+     WebsiteConfiguration:
+     IndexDocument: index.html
+     ErrorDocument: error.html
 
-jobs:
-  deploy:
-    runs-on: ubuntu-latest
+     BucketPolicy:
+     Type: AWS: :BucketPolicy
+     Properties:
+     Bucket: !Ref MyWebsiteBucket
+     PolicyDocument:
+      Statement:
+         "Sid": "PublicRead"
+            "Effect": "Allow"
+            "Principal": "*"
+            "Action": "s3:GetObject"
+            "Resource": "arn:aws:s3:::muni-demo-bucket/*"
+            -''
+             --'arn:aws:s3:::'
+             -!Ref MyWebsiteBucket
+             -'/*'
+             Value:! GetAtt MyWebsiteBucket.WebsiteURL
+             Description: URL of the static website             
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      # Optional: build step for frameworks like Vite, Next.js, etc.
-      # - name: Setup Node
-      #   uses: actions/setup-node@v4
-      #   with:
-      #     node-version: 18
-      # - name: Install dependencies
-      #   run: npm install
-      # - name: Build
-      #   run: npm run build
-      #   env:
-      #     NODE_ENV: production
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-region: ap-south-1   # change to your region
-
-      - name: Deploy to S3
-        run: |
-          aws s3 sync ./ s3://${{ secrets.muni-demo-bucket }}/ \
-            --delete \
-            --exclude ".git/*" \
-            --exclude ".github/*" \
-            --exclude "README.md"
+     
