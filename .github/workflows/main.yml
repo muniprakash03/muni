@@ -22,7 +22,7 @@ Resources:
         "Principal": "*"
         "Action": "s3:GetObject"
         "Resource": "arn:aws:s3:::muni-demo-bucket/*"
-        Value:! GetAtt MyWebsiteBucket.WebsiteURL
-        Description: URL of the static website             
+         Value: !GetAtt MyWebsiteBucket.WebsiteURL
+         Description: URL of the static website             
 
      
