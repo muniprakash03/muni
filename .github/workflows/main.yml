@@ -1,34 +1,51 @@
-# .github/workflows/deploy-to-s3.yml
-name: Deploy to S3
+name: Deploy Static Website to S3
 
 on:
   push:
-    branches: [ main ]  # or whatever your default branch is
-  pull_request:
     branches: [ main ]
+  workflow_dispatch:  # Allows manual triggering
+
+# OIDC permissions for keyless authentication
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-
+    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Configure AWS credentials
+    - name: Checkout repository
+      uses: actions/checkout@v3
+    
+    # No build step needed for this simple static website
+    # Just update the deployment timestamp in the JavaScript file
+    - name: Update deployment timestamp
+      run: |
+        echo "// Updating timestamp for deployment on $(date)" >> js/script.js
+        echo "// Deployment ID: ${{ github.run_id }}" >> js/script.js
+      
+    # # Configure AWS credentials
+    # - name: Configure AWS credentials
+    #   uses: aws-actions/configure-aws-credentials@v1
+    #   with:
+    #     aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+    #     aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+    #     aws-region: "ap-south-1"
+    
+    # OIDC/IRSA Authentication - No more access keys!
+    - name: Configure AWS credentials via OIDC
       uses: aws-actions/configure-aws-credentials@v4
       with:
-        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        aws-region: ap-south-1  # Change to your bucket's region
-
-    - name: Upload specific file to S3
+        role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+        role-session-name: GitHubActions-Backend-${{ github.run_id }}
+        aws-region: ${{secrets.AWS_REGION }}
+    
+    # Deploy to S3 bucket - directly sync the repository contents
+    - name: Deploy to S3
       run: |
-        aws s3 cp ./website/index.html s3.us-east-1.amazonaws.com/nathanferguson.me/index.html
-
-    # Optional: Invalidate CloudFront cache if you're using it
-    - name: Invalidate CloudFront
-      run: |
-        aws cloudfront create-invalidation --distribution-id E1IU0KCJ892E9E --paths "/*"
-      # Only run this step if you have CloudFront
-      if: false  # Change to true if you want to use this
+        aws s3 sync ./ s3://${{ secrets.S3_BUCKET_NAME }}/ \
+          --delete \
+          --exclude ".git/*" \
+          --exclude ".github/*" \
+          --exclude "README.md" 
