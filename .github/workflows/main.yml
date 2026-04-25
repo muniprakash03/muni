@@ -4,7 +4,7 @@ Description: Static Website Hosting using s3
 Resources:
 
   MyWebsiteBucket:
-    Type: AWS: :S3: :Bucket
+    Type: AWS::S3::Bucket
     Properties:
      BucketName: muni-demo-bucket
      WebsiteConfiguration:
