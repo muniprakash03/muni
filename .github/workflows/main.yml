@@ -12,7 +12,7 @@ Resources:
      ErrorDocument: error.html
 
      BucketPolicy:
-     Type: AWS: :BucketPolicy
+     Type: AWS::BucketPolicy
      Properties:
      Bucket: !Ref MyWebsiteBucket
      PolicyDocument:
